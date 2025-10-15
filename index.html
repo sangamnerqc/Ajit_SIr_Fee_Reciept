@@ -1,133 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fee Receipt Portal - Ajit Sir’s Physics Tutorials</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: linear-gradient(to bottom right, #e0e7ff, #f8fafc);
-      margin: 0;
-      color: #111827;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      justify-content: center;
-    }
-
-    .container {
-      background: #fff;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-      max-width: 420px;
-      width: 100%;
-      text-align: center;
-    }
-
-    h1 {
-      color: #1e3a8a;
-      font-size: 20px;
-      margin-bottom: 20px;
-    }
-
-    input {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      margin-top: 8px;
-      font-size: 15px;
-    }
-
-    button {
-      background-color: #1e3a8a;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 10px 16px;
-      font-size: 15px;
-      font-weight: bold;
-      margin-top: 16px;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    button:hover {
-      background-color: #3b82f6;
-    }
-
-    .status {
-      margin-top: 18px;
-      font-size: 14px;
-    }
-
-    a.download-link {
-      display: block;
-      margin-top: 10px;
-      color: #1e3a8a;
-      font-weight: 600;
-      text-decoration: none;
-    }
-
-    .spinner {
-      display: none;
-      margin-top: 12px;
-      color: #555;
-      font-size: 14px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fee Receipt Portal</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  margin-top: 50px;
+}
+input, button {
+  padding: 10px;
+  font-size: 16px;
+  margin: 10px;
+}
+a {
+  display: block;
+  margin-top: 20px;
+  font-weight: bold;
+  color: blue;
+}
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>Generate Fee Receipt (PDF)</h1>
-    <input type="text" id="roll" placeholder="Enter Roll Number (e.g. 101)">
-    <button onclick="generate()">Generate Receipt</button>
-    <div class="spinner" id="spinner">⏳ Generating receipt...</div>
-    <div class="status" id="status"></div>
-  </div>
 
-  <script>
-    // 🔗 Replace with your Apps Script deployed URL
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxWLv7E5EizESfkqVtUlvAokequQxxYiO6FiPKkH7xy1-ZBRhksmMX6whn_yo2UCzUQ/exec";
+<h1>Fee Receipt Portal</h1>
+<input type="text" id="roll" placeholder="Enter Roll Number">
+<button onclick="getReceipt()">Get Receipt</button>
+<div id="result"></div>
 
-    async function generate() {
-      const roll = document.getElementById("roll").value.trim();
-      const status = document.getElementById("status");
-      const spinner = document.getElementById("spinner");
+<script>
+const SHEET_ID = "1-o6Jo11vJ2iX-BPVIE3SzlObKf8Q3giWNDQrMxQbSJI"; // Replace with your sheet ID
+const SHEET_NAME = "Admissions";         // Replace with your sheet name
 
-      if (!roll) {
-        status.innerHTML = "<span style='color:red'>Please enter a Roll Number.</span>";
-        return;
-      }
+async function getReceipt() {
+  const rollNo = document.getElementById("roll").value.trim();
+  const resultDiv = document.getElementById("result");
+  resultDiv.innerHTML = "Fetching...";
 
-      status.innerHTML = "";
-      spinner.style.display = "block";
+  if (!rollNo) {
+    resultDiv.innerHTML = "Please enter a Roll Number.";
+    return;
+  }
 
-      try {
-        const res = await fetch(`${SCRIPT_URL}?roll=${encodeURIComponent(roll)}`);
-        const data = await res.json();
+  // URL to fetch sheet as JSON
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
 
-        spinner.style.display = "none";
+  try {
+    const res = await fetch(url);
+    const text = await res.text();
 
-        if (data.error) {
-          status.innerHTML = `<span style='color:red'>${data.error}</span>`;
-        } else {
-          status.innerHTML = `✅ ${data.message}`;
-          const link = document.createElement("a");
-          link.href = data.link;
-          link.textContent = "Click here to download Fee Receipt PDF";
-          link.target = "_blank";
-          link.className = "download-link";
-          status.appendChild(link);
-        }
-      } catch (err) {
-        spinner.style.display = "none";
-        status.innerHTML = `<span style='color:red'>Error: ${err.message}</span>`;
+    // Remove Google Sheets extra characters
+    const json = JSON.parse(text.substr(47).slice(0, -2));
+    const rows = json.table.rows;
+    const cols = json.table.cols.map(c => c.label);
+
+    const rollColIndex = cols.indexOf("RollNo");
+    const linkColIndex = cols.indexOf("Receipt Link");
+
+    if (rollColIndex === -1 || linkColIndex === -1) {
+      resultDiv.innerHTML = "Sheet columns not found.";
+      return;
+    }
+
+    // Find last row with matching RollNo
+    let link = null;
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const row = rows[i].c;
+      if (!row[rollColIndex]) continue;
+      if (row[rollColIndex].v.toString().trim() === rollNo) {
+        link = row[linkColIndex] ? row[linkColIndex].v : null;
+        break;
       }
     }
-  </script>
+
+    if (link) {
+      resultDiv.innerHTML = `<a href="${link}" target="_blank">Download Fee Receipt PDF</a>`;
+    } else {
+      resultDiv.innerHTML = "Receipt not found for this Roll Number.";
+    }
+
+  } catch (err) {
+    console.error(err);
+    resultDiv.innerHTML = "Error fetching data from Google Sheet.";
+  }
+}
+</script>
+
 </body>
 </html>
