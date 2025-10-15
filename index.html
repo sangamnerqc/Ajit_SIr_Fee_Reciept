@@ -166,7 +166,9 @@ async function getReceipt() {
       errorDiv.innerHTML = data.error;
       return;
     }
+     document.getElementById("downloadLink").href = data.link;
 
+    resultCard.style.display = "block";
     
   } catch (err) {
     spinner.style.display = "none";
