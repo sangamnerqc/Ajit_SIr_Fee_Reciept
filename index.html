@@ -5,22 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fee Receipt Portal</title>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  margin-top: 50px;
-}
-input, button {
-  padding: 10px;
-  font-size: 16px;
-  margin: 10px;
-}
-a {
-  display: block;
-  margin-top: 20px;
-  font-weight: bold;
-  color: blue;
-}
+body { font-family: Arial; text-align: center; margin-top: 50px; }
+input, button { padding: 10px; font-size: 16px; margin: 10px; }
+a { display: block; margin-top: 20px; font-weight: bold; color: blue; }
 </style>
 </head>
 <body>
@@ -31,8 +18,7 @@ a {
 <div id="result"></div>
 
 <script>
-const SHEET_ID = "1-o6Jo11vJ2iX-BPVIE3SzlObKf8Q3giWNDQrMxQbSJI"; // Replace with your sheet ID
-const SHEET_NAME = "Admissions";         // Replace with your sheet name
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxZ4ecV2OkzyeOnvIe17zFNJGjAy7QP1fyKWvtXbmxGBHADVvIOw7IfRBqYX-dyjoo/exec"; // replace with your Apps Script Web App URL
 
 async function getReceipt() {
   const rollNo = document.getElementById("roll").value.trim();
@@ -44,41 +30,14 @@ async function getReceipt() {
     return;
   }
 
-  // URL to fetch sheet as JSON
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
-
   try {
-    const res = await fetch(url);
-    const text = await res.text();
+    const res = await fetch(`${WEB_APP_URL}?roll=${encodeURIComponent(rollNo)}`);
+    const data = await res.json();
 
-    // Remove Google Sheets extra characters
-    const json = JSON.parse(text.substr(47).slice(0, -2));
-    const rows = json.table.rows;
-    const cols = json.table.cols.map(c => c.label);
-
-    const rollColIndex = cols.indexOf("RollNo");
-    const linkColIndex = cols.indexOf("Receipt Link");
-
-    if (rollColIndex === -1 || linkColIndex === -1) {
-      resultDiv.innerHTML = "Sheet columns not found.";
-      return;
-    }
-
-    // Find last row with matching RollNo
-    let link = null;
-    for (let i = rows.length - 1; i >= 0; i--) {
-      const row = rows[i].c;
-      if (!row[rollColIndex]) continue;
-      if (row[rollColIndex].v.toString().trim() === rollNo) {
-        link = row[linkColIndex] ? row[linkColIndex].v : null;
-        break;
-      }
-    }
-
-    if (link) {
-      resultDiv.innerHTML = `<a href="${link}" target="_blank">Download Fee Receipt PDF</a>`;
+    if (data.error) {
+      resultDiv.innerHTML = data.error;
     } else {
-      resultDiv.innerHTML = "Receipt not found for this Roll Number.";
+      resultDiv.innerHTML = `<a href="${data.link}" target="_blank">Download Fee Receipt PDF</a>`;
     }
 
   } catch (err) {
