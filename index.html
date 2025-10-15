@@ -167,19 +167,7 @@ async function getReceipt() {
       return;
     }
 
-    // Populate result card dynamically
-    document.getElementById("rno").innerText = data.RollNo || rollNo;
-    document.getElementById("name").innerText = data.Name || "-";
-    document.getElementById("course").innerText = data.Course || "-";
-    document.getElementById("payment").innerText = data.PaymentMode || "-";
-    document.getElementById("amount").innerText = data.Amount || "-";
-    document.getElementById("installment").innerText = data.Installment || "-";
-    document.getElementById("dueDate").innerText = data.DueDate || "-";
-    document.getElementById("datetime").innerText = data.DateTimeStamp || "-";
-    document.getElementById("downloadLink").href = data.link;
-
-    resultCard.style.display = "block";
-
+    
   } catch (err) {
     spinner.style.display = "none";
     errorDiv.innerHTML = "Error fetching data from Google Sheet.";
