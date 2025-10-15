@@ -1,0 +1,88 @@
+<!-- ---------- index.html ---------- -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admission Fee Receipt - Ajit Sir's Physics Tutorials</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f7fafc; color: #111827; }
+    header { background:#1e3a8a; color:#fff; padding:14px 18px; }
+    header .brand { display:flex; align-items:center; gap:12px; }
+    header img { height:44px; }
+    main { padding: 28px; max-width:760px; margin: 24px auto; background:#fff; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+    h1 { margin:0 0 10px 0; font-size:20px; color:#0f172a; }
+    .field { margin:12px 0; }
+    input[type="text"] { width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:14px; }
+    button { background:#1e3a8a; color:#fff; padding:10px 14px; border-radius:6px; border:none; cursor:pointer; font-weight:600; }
+    .note { margin-top:12px; color:#374151; font-size:13px; }
+    .status { margin-top:14px; font-size:14px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img src="https://ssl.gstatic.com/docs/doclist/images/drive_2020q4_48dp.png" alt="logo"/>
+      <div>
+        <div style="font-weight:700">Ajit Sir’s Physics Tutorials</div>
+        <div style="font-size:12px; opacity:0.9">Admission Fee Receipt Portal</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <h1>Generate Fee Receipt (PDF)</h1>
+
+    <div class="field">
+      <label for="roll" style="display:block; font-weight:600; margin-bottom:6px">Roll Number</label>
+      <input id="roll" type="text" placeholder="Enter student RollNo (e.g. 101)" />
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:center">
+      <button id="genBtn" onclick="generate()">Generate & Download</button>
+      <div id="spinner" style="display:none">⏳ Generating...</div>
+    </div>
+
+    <div class="status" id="status"></div>
+    <div class="note">Make sure this app has access to the sheet named <strong>Admissions</strong> and the Docs template ID is set in the script.</div>
+  </main>
+
+  <script>
+    function setStatus(msg, isError) {
+      const s = document.getElementById('status');
+      s.style.color = isError ? 'crimson' : '#0f5132';
+      s.innerText = msg;
+    }
+
+    function downloadBase64File(base64Data, fileName) {
+      const linkSource = `data:application/pdf;base64,${base64Data}`;
+      const downloadLink = document.createElement("a");
+      downloadLink.href = linkSource;
+      downloadLink.download = fileName;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+    }
+
+    function generate() {
+      const roll = document.getElementById('roll').value.trim();
+      if (!roll) { setStatus('Please enter Roll Number.', true); return; }
+
+      document.getElementById('genBtn').disabled = true;
+      document.getElementById('spinner').style.display = 'inline';
+      setStatus('Contacting server...');
+
+      google.script.run.withSuccessHandler(function(res) {
+        document.getElementById('genBtn').disabled = false;
+        document.getElementById('spinner').style.display = 'none';
+        if (res.error) {
+          setStatus(res.error, true);
+        } else {
+          setStatus(res.message || 'Done.');
+          downloadBase64File(res.pdfData, res.filename);
+        }
+      }).generateReceipt(roll);
+    }
+  </script>
+</body>
+</html>
