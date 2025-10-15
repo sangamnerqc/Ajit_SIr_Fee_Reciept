@@ -39,12 +39,10 @@
   button:hover {
     background-color: #3b82f6;
   }
-  .link {
-    margin-top: 20px;
-    display: block;
+  .message {
+    margin-top: 15px;
     font-weight: bold;
-    color: #1e3a8a;
-    text-decoration: none;
+    color: green;
   }
   .error {
     color: red;
@@ -82,7 +80,16 @@ async function getReceipt() {
     if (data.error) {
       output.innerHTML = `<div class="error">${data.error}</div>`;
     } else {
-      output.innerHTML = `<a class="link" href="${data.link}" target="_blank">Click here to download Fee Receipt PDF</a>`;
+      // Automatically download the PDF
+      const link = document.createElement('a');
+      link.href = data.link;
+      // Optional: use RollNo as filename
+      link.download = `FeeReceipt_${rollNo}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      output.innerHTML = '<div class="message">Receipt download started!</div>';
     }
 
   } catch (err) {
