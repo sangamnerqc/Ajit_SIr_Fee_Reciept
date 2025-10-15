@@ -43,16 +43,20 @@
     </div>
 
     <div class="status" id="status"></div>
-    <div class="note">Make sure this app has access to the sheet named <strong>Admissions</strong> and the Docs template ID is set in the script.</div>
+    <div class="note">Make sure your Google Sheet and Docs template are properly linked in the Apps Script backend.</div>
   </main>
 
   <script>
+    // 🔗 Replace this with your deployed Google Apps Script web app URL
+    const DEPLOYMENT_URL = "https://script.google.com/macros/s/AKfycbzIzFFkMGK_QGf58twcjlDnJgrQs8e5gbB46QY8i8OT15IRDop31XoTT7hYj2QsrE0/exec";
+
     function setStatus(msg, isError) {
       const s = document.getElementById('status');
       s.style.color = isError ? 'crimson' : '#0f5132';
       s.innerText = msg;
     }
 
+    // Convert base64 to downloadable file
     function downloadBase64File(base64Data, fileName) {
       const linkSource = `data:application/pdf;base64,${base64Data}`;
       const downloadLink = document.createElement("a");
@@ -63,26 +67,37 @@
       downloadLink.remove();
     }
 
-    function generate() {
+    // Main function to call Google Apps Script web app
+    async function generate() {
       const roll = document.getElementById('roll').value.trim();
-      if (!roll) { setStatus('Please enter Roll Number.', true); return; }
+      if (!roll) {
+        setStatus('Please enter Roll Number.', true);
+        return;
+      }
 
       document.getElementById('genBtn').disabled = true;
       document.getElementById('spinner').style.display = 'inline';
       setStatus('⏳ Generating receipt...');
 
-      google.script.run
-        .withSuccessHandler(function(res) {
-          document.getElementById('genBtn').disabled = false;
-          document.getElementById('spinner').style.display = 'none';
-          if (res.error) {
-            setStatus(res.error, true);
-          } else {
-            setStatus(res.message);
-            downloadBase64File(res.pdfData, res.filename);
-          }
-        })
-        .generateReceipt(roll);
+      try {
+        // Send GET request to Apps Script
+        const response = await fetch(`${DEPLOYMENT_URL}?roll=${encodeURIComponent(roll)}`);
+        const result = await response.json();
+
+        document.getElementById('genBtn').disabled = false;
+        document.getElementById('spinner').style.display = 'none';
+
+        if (result.error) {
+          setStatus(result.error, true);
+        } else {
+          setStatus(result.message || '✅ Receipt ready!');
+          downloadBase64File(result.pdfData, result.filename);
+        }
+      } catch (err) {
+        setStatus("⚠️ Network or server error: " + err.message, true);
+        document.getElementById('genBtn').disabled = false;
+        document.getElementById('spinner').style.display = 'none';
+      }
     }
   </script>
 </body>
